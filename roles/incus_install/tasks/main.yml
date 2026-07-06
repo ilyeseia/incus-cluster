@@ -1,0 +1,32 @@
+---
+# تثبيت Incus من مستودع Zabbly (Ubuntu 22.04 لا يحتوي على حزمة incus أصلاً)
+
+- name: إنشاء مجلد مفاتيح apt
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: تنزيل مفتاح توقيع مستودع Zabbly
+  ansible.builtin.get_url:
+    url: "{{ zabbly_key_url }}"
+    dest: /etc/apt/keyrings/zabbly.asc
+    mode: "0644"
+
+- name: إضافة مستودع Zabbly لحزم Incus المستقرة
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/zabbly-incus.list
+    content: "{{ zabbly_repo }}\n"
+    mode: "0644"
+
+- name: تثبيت Incus وواجهة الويب
+  ansible.builtin.apt:
+    name: "{{ ['incus'] + (['incus-ui-canonical'] if incus_ui_enabled else []) }}"
+    state: present
+    update_cache: true
+
+- name: تفعيل خدمة Incus وتشغيلها
+  ansible.builtin.systemd:
+    name: incus
+    enabled: true
+    state: started
