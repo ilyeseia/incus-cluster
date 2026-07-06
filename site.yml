@@ -1,0 +1,45 @@
+---
+# ============================================
+# عنقود Incus - 12 عقدة عبر Tailscale
+# التشغيل: ansible-playbook site.yml
+# ============================================
+
+- name: تهيئة جميع العقد وتثبيت Incus
+  hosts: incus_cluster
+  become: true
+  roles:
+    - common
+    - incus_install
+
+- name: تهيئة عقدة التمهيد
+  hosts: bootstrap
+  become: true
+  roles:
+    - incus_bootstrap
+
+- name: انضمام بقية العقد إلى العنقود (واحدة تلو الأخرى)
+  hosts: members
+  become: true
+  serial: 1
+  roles:
+    - incus_join
+
+- name: عرض حالة العنقود النهائية
+  hosts: bootstrap
+  become: true
+  tasks:
+    - name: جلب قائمة أعضاء العنقود
+      ansible.builtin.command: incus cluster list
+      register: final_cluster
+      changed_when: false
+
+    - name: حالة العنقود
+      ansible.builtin.debug:
+        msg: "{{ final_cluster.stdout_lines }}"
+
+    - name: معلومات الوصول
+      ansible.builtin.debug:
+        msg:
+          - "واجهة الويب متاحة على: https://{{ tailscale_ip }}:{{ incus_https_port }}"
+          - "لإنشاء شهادة وصول للمتصفح، نفّذ على node-01:"
+          - "  incus config trust add my-browser"
