@@ -1,0 +1,35 @@
+---
+# انضمام عقدة إلى العنقود (تُنفَّذ عقدة واحدة في كل مرة - serial: 1)
+
+- name: التحقق مما إذا كانت العقدة منضمّة مسبقاً
+  ansible.builtin.command: incus cluster list --format csv
+  register: join_check
+  changed_when: false
+  failed_when: false
+
+- name: توليد رمز انضمام من عقدة التمهيد
+  ansible.builtin.command: "incus cluster add {{ inventory_hostname }}"
+  delegate_to: "{{ groups['bootstrap'][0] }}"
+  register: join_token_raw
+  when: join_check.rc != 0
+
+- name: استخراج رمز الانضمام
+  ansible.builtin.set_fact:
+    incus_join_token: "{{ join_token_raw.stdout_lines | last | trim }}"
+  when: join_check.rc != 0
+
+- name: إنشاء ملف preseed للانضمام
+  ansible.builtin.template:
+    src: join-preseed.yaml.j2
+    dest: /root/incus-join-preseed.yaml
+    mode: "0600"
+  when: join_check.rc != 0
+
+- name: الانضمام إلى العنقود
+  ansible.builtin.shell: incus admin init --preseed < /root/incus-join-preseed.yaml
+  when: join_check.rc != 0
+
+- name: حذف ملف preseed (يحتوي على رمز حساس)
+  ansible.builtin.file:
+    path: /root/incus-join-preseed.yaml
+    state: absent
