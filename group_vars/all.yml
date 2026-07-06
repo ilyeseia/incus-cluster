@@ -1,0 +1,19 @@
+---
+# ===== إعدادات عنقود Incus =====
+
+# منفذ API وواجهة الويب (عبر Tailscale فقط)
+incus_https_port: 8443
+
+# اسم مخزن التخزين الافتراضي (dir هو الأنسب لقرص 20GB بدون أقراص إضافية)
+incus_storage_pool: default
+incus_storage_driver: dir
+
+# الشبكة الداخلية للحاويات
+incus_network_name: incusbr0
+
+# تفعيل واجهة الويب
+incus_ui_enabled: true
+
+# مستودع Zabbly (المستودع الرسمي لحزم Incus على Ubuntu 22.04)
+zabbly_key_url: https://pkgs.zabbly.com/key.asc
+zabbly_repo: "deb [signed-by=/etc/apt/keyrings/zabbly.asc] https://pkgs.zabbly.com/incus/stable {{ ansible_distribution_release }} main"
