@@ -1,0 +1,27 @@
+---
+# تهيئة عقدة التمهيد (node-01) وتفعيل وضع العنقود
+
+- name: التحقق مما إذا كان العنقود مفعّلاً مسبقاً
+  ansible.builtin.command: incus cluster list --format csv
+  register: cluster_check
+  changed_when: false
+  failed_when: false
+
+- name: إنشاء ملف preseed للتمهيد
+  ansible.builtin.template:
+    src: bootstrap-preseed.yaml.j2
+    dest: /root/incus-bootstrap-preseed.yaml
+    mode: "0600"
+  when: cluster_check.rc != 0
+
+- name: تهيئة Incus وتفعيل العنقود على عقدة التمهيد
+  ansible.builtin.shell: incus admin init --preseed < /root/incus-bootstrap-preseed.yaml
+  when: cluster_check.rc != 0
+
+- name: التأكد من جاهزية العنقود
+  ansible.builtin.command: incus cluster list --format csv
+  register: cluster_ready
+  changed_when: false
+  retries: 5
+  delay: 3
+  until: cluster_ready.rc == 0
